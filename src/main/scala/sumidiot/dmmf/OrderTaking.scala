@@ -11,7 +11,11 @@ object OrderTaking {
   type ProductCode = String // this will be replaced by WidgetCode or GizmoCode at some point
 
   // compare F#, type Person = {First:string, Last:string}
-  case class Person(first: String, last: String)
+  case class Person(
+    first: String,
+    middleInitial: Option[String],
+    last: String
+  )
 
   /**
    * This example, in F# in the book, is written more briefly as
