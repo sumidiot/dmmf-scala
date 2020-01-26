@@ -11,3 +11,8 @@ using scala (instead of F# like the book is based on).
 We'll see how this repo evolves, whether it's a folder per chapter, each built off
 the last, or if we use branches per chapter to be able to easily look at diffs.
 
+## Current Status
+
+Just getting off the ground with a repo setup. Picking back up from a first read-through
+of the book, to recover exactly where to start this repo with actual code.
+
