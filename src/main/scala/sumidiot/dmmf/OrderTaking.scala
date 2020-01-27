@@ -61,7 +61,13 @@ object OrderTaking {
 
   type UnpaidInvoice = Object // would rather put ??? here, but that doesn't work
   type PaidInvoice = Object // again, will have to specify this later
-  type PayInvoice = UnpaidInvoice => Payment => PaidInvoice
+
+  sealed trait PaymentError
+  case object CardTypeNotRecognized
+  case object PaymentRejected
+  case object PaymentProviderOffline
+
+  type PayInvoice = UnpaidInvoice => Payment => Either[PaymentError, PaidInvoice]
 
   type ConvertPaymentCurrency = Payment => Currency => Payment
 
