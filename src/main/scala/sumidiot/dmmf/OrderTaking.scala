@@ -37,7 +37,12 @@ object OrderTaking {
   type OrderPlaced = Void
   type BillableOrderPlaced = Void
 
-  type ValidateOrder = UnvalidatedOrder => ValidatedOrder
+  case class ValidationError(
+    fieldName: String,
+    errorDescription: String
+  )
+
+  type ValidateOrder = UnvalidatedOrder => Future[Either[List[ValidationError], ValidatedOrder]]
 
   case class PlaceOrderEvents(
     acknowledgementSent: AcknowledgementSent,
