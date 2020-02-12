@@ -1,5 +1,10 @@
 context: Order-Taking
 
+// ----------------
+// Simple types
+// ----------------
+
+// Product codes
 data WidgetCode = string starting with "W" then 4 digits
 data GizmoCode = string starting with "G" then 3 digits
 data ProductCode = WidgetCode or GizmoCode
@@ -8,13 +13,11 @@ data OrderQuantity = UnitQuantity or KilogramQuantity
 data UnitQuantity = integer between 1 and 1000
 data KilogramQuantity = decimal between 0.05 and 100.00
 
-data Order =
-  CustomerInfo
-  AND ShippingAddress
-  AND BillingAddress
-  AND list of OrderLines
-  AND AmountToBill
+// --------------------
+// Order life cycle
+// --------------------
 
+// ----- unvalidated state -------------
 data UnvalidatedOrder =
   UnvalidatedCustomerInfo
   AND UnvalidatedShippingAddress
@@ -25,6 +28,7 @@ data UnvalidatedOrderLine =
   UnvalidatedProductCode
   AND UnvalidatedOrderQuantity
 
+// ----- validated state ---------------
 data ValidatedOrder =
   ValidatedCustomerInfo
   AND ValidatedShippingAddress
@@ -35,6 +39,7 @@ data ValidatedOrderLine =
   ValidatedProductCode
   AND ValidatedOrderQuantity
 
+// ----- priced state ------------------
 data PricedOrder =
   ValidatedCustomerInfo
   AND ValidatedShippingAddress
@@ -46,16 +51,23 @@ data PricedOrderLine =
   ValidatedOrderLine
   AND LinePrice
 
+// ----- output events -----------------
+data OrderAcknowledgementSent = ...
+data OrderPlaced = ...
+data BillableOrderPlaced = ...
 data PlacedOrderAcknowledgement =
   PricedOrder
   AND AcknowledgementLetter
 
 
 workflow "Place Order" =
-  input: OrderForm
-  output:
-    OrderPlaced event (put on a pile to send to other teams)
-    OR InvalidOrder (put on appropriate pile)
+  input: UnvalidatedOrder
+  output (on success):
+    OrderAcknowledgementSent
+    AND OrderPlaced event (to send to shipping)
+    AND BillableOrderPlaced (to send to billing)
+  output (on error):
+    InvalidOrder
 
   // step 1
   do ValidateOrder
