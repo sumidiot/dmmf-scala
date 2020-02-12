@@ -30,5 +30,21 @@ object OrderTaking {
     billingAddress: BillingAddress,
     orderLines: List[OrderLine]
   )
+
+  // more placeholder types
+  type ValidatedOrder = Void
+  type AcknowledgementSent = Void
+  type OrderPlaced = Void
+  type BillableOrderPlaced = Void
+
+  type ValidateOrder = UnvalidatedOrder => ValidatedOrder
+
+  case class PlaceOrderEvents(
+    acknowledgementSent: AcknowledgementSent,
+    orderPlaced: OrderPlaced,
+    billableOrderPlaced: BillableOrderPlaced
+  )
+
+  type PlaceOrder = UnvalidatedOrder => PlaceOrderEvents
     
 }
