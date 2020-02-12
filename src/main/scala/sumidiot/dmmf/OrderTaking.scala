@@ -42,7 +42,8 @@ object OrderTaking {
     errorDescription: String
   )
 
-  type ValidateOrder = UnvalidatedOrder => Future[Either[List[ValidationError], ValidatedOrder]]
+  type ValidationoResponse[R] = Future[Either[List[ValidationError], R]]
+  type ValidateOrder = UnvalidatedOrder => ValidationResponse[ValidatedOrder]
 
   case class PlaceOrderEvents(
     acknowledgementSent: AcknowledgementSent,
