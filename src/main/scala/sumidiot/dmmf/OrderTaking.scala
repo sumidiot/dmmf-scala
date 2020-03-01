@@ -1,6 +1,7 @@
 package sumidiot.dmmf
 
 import scala.concurrent.Future
+import cats.data.NonEmptyList
 
 
 /**
@@ -67,7 +68,7 @@ object OrderTaking {
     customerId: CustomerId, // aggregate entities should store references to contained entities
     shippingAddress: ShippingAddress,
     billingAddress: BillingAddress,
-    orderLines: List[OrderLine],
+    orderLines: NonEmptyList[OrderLine],
     amountToBill: BillingAmount
   )
 
