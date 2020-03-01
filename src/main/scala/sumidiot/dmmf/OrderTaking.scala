@@ -14,8 +14,33 @@ object OrderTaking {
   case class GizmoCode(code: String) extends AnyVal with ProductCode  // will add constraint later
 
   sealed trait OrderQuantity extends Any
-  case class UnitQuantity(quantity: Int) extends AnyVal with OrderQuantity
+  /**
+   * This was previously a case class, but `private` for those only makes the constructor
+   * private, not the associated `apply` method. When we remove the `case` keyword, we are
+   * inspired to create an `unapply` so that we can `match`. This does mean we can define
+   * the `apply` method in the companion object, where when this was a case class we had
+   * no ability to override it with the same argument list.
+   *
+   * See the following for more:
+   *   * https://stackoverflow.com/a/50993017
+   *   * https://users.scala-lang.org/t/ending-the-confusion-of-private-case-class-constructor-in-scala-2-13-or-2-14/2915
+   */
+  class UnitQuantity private (val quantity: Int) extends AnyVal with OrderQuantity
   case class KilogramQuantity(quantity: Double) extends AnyVal with OrderQuantity
+
+  object UnitQuantity {
+    def apply(quantity: Int): Either[String, UnitQuantity] =
+      if (quantity < 1) {
+        Left("UnitQuantity can not be negative")
+      } else if (quantity > 1000) {
+        Left("UnitQuantity can not be more than 1000")
+      } else {
+        Right(new UnitQuantity(quantity))
+      }
+
+    def unapply(uq: UnitQuantity): Option[Int] =
+      Some(uq.quantity)
+  }
 
   // placeholder types for ids of "entity" types
   type OrderId = Void
