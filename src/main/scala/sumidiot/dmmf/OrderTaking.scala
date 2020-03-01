@@ -64,7 +64,22 @@ object OrderTaking {
   type Name = String
   type EmailContactInfo = String
   type PostalContactInfo = String
-  case class Contact(name: Name, email: Option[EmailContactInfo], address: Option[PostalContactInfo])
+  sealed trait ContactInfo extends Any
+  object ContactInfo {
+    case class EmailOnly(email: EmailContactInfo) extends AnyVal with ContactInfo
+    case class AddrOnly(address: PostalContactInfo) extends AnyVal with ContactInfo
+
+    /**
+     * This elaborates the demonstation of the complication of sealed traits as sum types.
+     * First, we end up having to have them be `Any`/`AnyVal`s. Now, for a constructor
+     * to take more than one argument, we end up shoving that into its own type, not in the
+     * `sealed` hierarchy, and then wrapping that in another `case class` to get it into
+     * the hierarchy as an `AnyVal`.
+     */
+    case class BothContactMethods(email: EmailContactInfo, address: PostalContactInfo)
+    case class EmailAndAddr(both: BothContactMethods) extends AnyVal with ContactInfo
+  }
+  case class Contact(name: Name, info: ContactInfo)
 
   // placeholder types for ids of "entity" types
   type OrderId = Void
