@@ -36,6 +36,10 @@ object OrderTaking {
    *   KilogramQuantity(5.0) // fails
    *   val kq = KilogramQuantity(tag[Kilograms](5.0)) // succeeds
    *   val q: Double = kq // extracs the un-tagged double
+   *
+   * It'd be super cool to say something like
+   *   type KilogramQuantity = (Double @@ Kilograms) extends AnyVal with OrderQuantity
+   * but that doesn't seem to work.
    */
   trait Kilograms
   case class KilogramQuantity(quantity: Double @@ Kilograms) extends AnyVal with OrderQuantity
