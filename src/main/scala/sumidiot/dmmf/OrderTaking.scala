@@ -44,7 +44,12 @@ object OrderTaking {
   }
 
   type EmailAddress = String
-  case class CustomerEmail(emailAddress: EmailAddress, isVerified: Boolean)
+  sealed trait CustomerEmail extends Any
+  object CustomerEmail {
+    case class Unverified(emailAddress: EmailAddress) extends AnyVal with CustomerEmail
+    case class Verified(emailAddress: EmailAddress) extends AnyVal with CustomerEmail
+  }
+
 
   // placeholder types for ids of "entity" types
   type OrderId = Void
