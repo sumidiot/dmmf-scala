@@ -64,7 +64,7 @@ object OrderTaking {
   type Name = String
   type EmailContactInfo = String
   type PostalContactInfo = String
-  case class Contact(name: Name, email: EmailContactInfo, address: PostalContactInfo)
+  case class Contact(name: Name, email: Option[EmailContactInfo], address: Option[PostalContactInfo])
 
   // placeholder types for ids of "entity" types
   type OrderId = Void
