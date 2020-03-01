@@ -1,6 +1,7 @@
 package sumidiot.dmmf
 
 import scala.concurrent.Future
+import shapeless.tag.@@
 
 
 /**
@@ -26,7 +27,18 @@ object OrderTaking {
    *   * https://users.scala-lang.org/t/ending-the-confusion-of-private-case-class-constructor-in-scala-2-13-or-2-14/2915
    */
   class UnitQuantity private (val quantity: Int) extends AnyVal with OrderQuantity
-  case class KilogramQuantity(quantity: Double) extends AnyVal with OrderQuantity
+
+  /**
+   * Introduce a type tag for these units, relying on shapeless `tag`. Another good option
+   * here is probably to use [squants](github.com/typelevel/squants).
+   *
+   * Example usage, if you go down the `tag` route:
+   *   KilogramQuantity(5.0) // fails
+   *   val kq = KilogramQuantity(tag[Kilograms](5.0)) // succeeds
+   *   val q: Double = kq // extracs the un-tagged double
+   */
+  trait Kilograms
+  case class KilogramQuantity(quantity: Double @@ Kilograms) extends AnyVal with OrderQuantity
 
   object UnitQuantity {
     def apply(quantity: Int): Either[String, UnitQuantity] =
