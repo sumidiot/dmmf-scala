@@ -44,10 +44,21 @@ object OrderTaking {
   }
 
   type EmailAddress = String
+  /**
+   * In the text, it notes that this private constructor would only be called from an
+   * email verification service, which I guess would be another module here.
+   *
+   * Thinking about this asynchronously, you'd email the Unverified address, and wait, taking
+   * a note in the database that a verification email was sent. Once it eventually came
+   * back, I guess you'd update the database with the verified flat. And then... something like,
+   * when you ask for a User, from the database, it would be responsible for checking the
+   * database state and creating the CustomerEmail correctly, as either verified or not.
+   */
+  class VerifiedEmailAddress private (email: String)
   sealed trait CustomerEmail extends Any
   object CustomerEmail {
     case class Unverified(emailAddress: EmailAddress) extends AnyVal with CustomerEmail
-    case class Verified(emailAddress: EmailAddress) extends AnyVal with CustomerEmail
+    case class Verified(emailAddress: VerifiedEmailAddress) extends AnyVal with CustomerEmail
   }
 
 
