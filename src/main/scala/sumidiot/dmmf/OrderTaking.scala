@@ -61,6 +61,10 @@ object OrderTaking {
     case class Verified(emailAddress: VerifiedEmailAddress) extends AnyVal with CustomerEmail
   }
 
+  type Name = String
+  type EmailContactInfo = String
+  type PostalContactInfo = String
+  case class Contact(name: Name, email: EmailContactInfo, address: PostalContactInfo)
 
   // placeholder types for ids of "entity" types
   type OrderId = Void
