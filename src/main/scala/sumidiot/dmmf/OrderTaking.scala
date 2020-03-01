@@ -43,6 +43,9 @@ object OrderTaking {
       Some(uq.quantity)
   }
 
+  type EmailAddress = String
+  case class CustomerEmail(emailAddress: EmailAddress, isVerified: Boolean)
+
   // placeholder types for ids of "entity" types
   type OrderId = Void
   type OrderLineId = Void
