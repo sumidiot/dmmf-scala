@@ -97,8 +97,8 @@ object OrderTaking {
   type CustomerInfo = Void
   type ShippingAddress = Void
   type BillingAddress = Void
-  type Price = Void
-  type BillingAmount = Void
+  type Price = Double // for now, so that it lets us .sum a List[Price]
+  type BillingAmount = Double // again, for now, otherwise the type of .sum of List[Price]
 
   case class OrderLine(
     id: OrderLineId,
@@ -116,6 +116,29 @@ object OrderTaking {
     orderLines: NonEmptyList[OrderLine],
     amountToBill: BillingAmount
   )
+
+  /**
+   * This implementation is slightly more involved than the one given in the book. Possibly
+   * I did something wrong, or maybe it was something swept under the rug in the book. The
+   * difference is if the `orderLineId` isn't the id of a line in the order.
+   */
+  def changeOrderLinePrice(order: UnvalidatedOrder, orderLineId: OrderLineId, newPrice: Price): UnvalidatedOrder = {
+    /**
+     * The text doesn't define this method. I've got it here as an inner helper of the outer
+     * def, but given the parameter list, probably the book proposes having it ouside, as its
+     * own method (making it nicely testable, for example). Also, in the book it uses the
+     * function application syntax of `|>`. To better align with that, we'd re-organize this
+     * method so that `lines` was taken by itself as a second parameter list.
+     */
+    def replaceOrderLine(lines: NonEmptyList[OrderLine], orderLineId: OrderLineId, newOrderLine: OrderLine): NonEmptyList[OrderLine] = {
+      NonEmptyList(newOrderLine, lines.filter(_.id != orderLineId))
+    }
+    val orderLine = order.orderLines.find(_.id == orderLineId) // Option[OrderLine]
+    val newOrderLine = orderLine.map(_.copy(price = newPrice)) // Option[OrderLine]
+    val newOrderLines = newOrderLine.map(replaceOrderLine(order.orderLines, orderLineId, _)).getOrElse(order.orderLines)
+    val newAmountToBill = newOrderLines.map(_.price).toList.sum // .sum isn't built in to NEL
+    order.copy(orderLines = newOrderLines, amountToBill = newAmountToBill)
+  }
 
   // more placeholder types
   type ValidatedOrder = Void
