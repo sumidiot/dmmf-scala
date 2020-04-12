@@ -3,6 +3,7 @@ package sumidiot.dmmf
 import scala.concurrent.Future
 import cats.data.NonEmptyList
 
+import java.time.ZonedDateTime
 
 /**
  * This object represents the beginnings of the implemented version of the domain
@@ -166,12 +167,14 @@ object OrderTaking {
   sealed trait PlaceOrderError
   case class OrderValidationErrors(validationErrors: List[ValidationError])
 
-  case class PlaceOrderCommand(
-    orderForm: UnvalidatedOrder,
-    timestamp: DateTime,
+  // if there are several commands with shared fields, you can abstract out
+  // the shared bits and a placeholder for the non-shared bits
+  case class Command[Data](
+    data: Data,
+    timestamp: ZonedDateTime,
     userId: CustomerId
-    // etc
   )
+  type PlaceOrderCommand = Command[UnvalidatedOrder]
   
   type PlaceOrder = PlaceOrderCommand => Either[PlaceOrderError, PlaceOrderEvents]
     
