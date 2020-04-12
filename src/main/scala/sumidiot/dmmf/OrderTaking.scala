@@ -101,6 +101,7 @@ object OrderTaking {
   type CustomerInfo = Void
   type ShippingAddress = Void
   type BillingAddress = Void
+  type Address = Void
   type Price = Double // for now, so that it lets us .sum a List[Price]
   type BillingAmount = Double // again, for now, otherwise the type of .sum of List[Price]
 
@@ -112,21 +113,16 @@ object OrderTaking {
     price: Price
   )
 
-  case class UnvalidatedOrder(
-    id: OrderId,
-    customerInfo: UnvalidatedCustomerInfo,
-    shippingAddress: UnvalidatedShippingAddress,
-    billingAddress: UnvalidatedBillingAddress,
-    orderLines: NonEmptyList[OrderLine],
-    amountToBill: BillingAmount
-  )
+  type ValidatedOrderLine = OrderLine
+  type PricedOrderLine = OrderLine
+
 
   /**
    * This implementation is slightly more involved than the one given in the book. Possibly
    * I did something wrong, or maybe it was something swept under the rug in the book. The
    * difference is if the `orderLineId` isn't the id of a line in the order.
    */
-  def changeOrderLinePrice(order: UnvalidatedOrder, orderLineId: OrderLineId, newPrice: Price): UnvalidatedOrder = {
+  def changeOrderLinePrice(order: Order.Unvalidated, orderLineId: OrderLineId, newPrice: Price): Order.Unvalidated = {
     /**
      * The text doesn't define this method. I've got it here as an inner helper of the outer
      * def, but given the parameter list, probably the book proposes having it ouside, as its
@@ -137,15 +133,55 @@ object OrderTaking {
     def replaceOrderLine(lines: NonEmptyList[OrderLine], orderLineId: OrderLineId, newOrderLine: OrderLine): NonEmptyList[OrderLine] = {
       NonEmptyList(newOrderLine, lines.filter(_.id != orderLineId))
     }
-    val orderLine = order.orderLines.find(_.id == orderLineId) // Option[OrderLine]
+    val orderLine = order.order.orderLines.find(_.id == orderLineId) // Option[OrderLine]
     val newOrderLine = orderLine.map(_.copy(price = newPrice)) // Option[OrderLine]
-    val newOrderLines = newOrderLine.map(replaceOrderLine(order.orderLines, orderLineId, _)).getOrElse(order.orderLines)
+    val newOrderLines = newOrderLine.map(replaceOrderLine(order.order.orderLines, orderLineId, _)).getOrElse(order.order.orderLines)
     val newAmountToBill = newOrderLines.map(_.price).toList.sum // .sum isn't built in to NEL
-    order.copy(orderLines = newOrderLines, amountToBill = newAmountToBill)
+    order.copy(order = order.order.copy(orderLines = newOrderLines, amountToBill = newAmountToBill))
   }
 
+
+  /**
+   * We create this sum-type for the various states of Order in the place order workflow,
+   * following the book. The claim in the book is that "this is the type that can be persisted
+   * to storage or communicated to other contexts."
+   *
+   * Note that this setup makes the same Any/AnyVal mess as EmailAndAddr above, in particular
+   * making the ugly `order.order.` calls in the `changeOrderLinePrice` method above.
+   */
+  sealed trait Order extends Any
+  object Order {
+    case class UnvalidatedOrder(
+      id: OrderId,
+      customerInfo: UnvalidatedCustomerInfo,
+      shippingAddress: UnvalidatedShippingAddress,
+      billingAddress: UnvalidatedBillingAddress,
+      orderLines: NonEmptyList[OrderLine],
+      amountToBill: BillingAmount
+    )
+    case class Unvalidated(order: UnvalidatedOrder) extends AnyVal with Order
+
+    case class ValidatedOrder(
+      orderId: OrderId,
+      customerInfo: CustomerInfo,
+      shippingAddress: Address,
+      billingAddress: Address,
+      orderLines: List[ValidatedOrderLine]
+    )
+    case class Validated(order: ValidatedOrder) extends AnyVal with Order
+  
+    case class PricedOrder(
+      orderId: OrderId,
+      customerInfo: CustomerInfo,
+      shippingAddress: Address,
+      billingAddress: Address,
+      orderLines: List[PricedOrderLine],
+      amountToBill: BillingAmount
+    )
+    case class Priced(order: PricedOrder) extends AnyVal with Order
+  }
+  
   // more placeholder types
-  type ValidatedOrder = Void
   type AcknowledgementSent = Void
   type OrderPlaced = Void
   type BillableOrderPlaced = Void
@@ -156,7 +192,7 @@ object OrderTaking {
   )
 
   type ValidationResponse[R] = Future[Either[List[ValidationError], R]]
-  type ValidateOrder = UnvalidatedOrder => ValidationResponse[ValidatedOrder]
+  type ValidateOrder = Order.Unvalidated => ValidationResponse[Order.Validated]
 
   case class PlaceOrderEvents(
     acknowledgementSent: AcknowledgementSent,
@@ -174,7 +210,7 @@ object OrderTaking {
     timestamp: ZonedDateTime,
     userId: CustomerId
   )
-  type PlaceOrderCommand = Command[UnvalidatedOrder]
+  type PlaceOrderCommand = Command[Order.Unvalidated]
   
   type PlaceOrder = PlaceOrderCommand => Either[PlaceOrderError, PlaceOrderEvents]
     
