@@ -94,6 +94,9 @@ object OrderTaking {
   type CustomerId = Void
 
   // placeholder types, not sure what a better way to capture these might be
+  type UnvalidatedCustomerInfo = Void
+  type UnvalidatedShippingAddress = Void
+  type UnvalidatedBillingAddress = Void
   type CustomerInfo = Void
   type ShippingAddress = Void
   type BillingAddress = Void
@@ -110,9 +113,9 @@ object OrderTaking {
 
   case class UnvalidatedOrder(
     id: OrderId,
-    customerId: CustomerId, // aggregate entities should store references to contained entities
-    shippingAddress: ShippingAddress,
-    billingAddress: BillingAddress,
+    customerInfo: UnvalidatedCustomerInfo,
+    shippingAddress: UnvalidatedShippingAddress,
+    billingAddress: UnvalidatedBillingAddress,
     orderLines: NonEmptyList[OrderLine],
     amountToBill: BillingAmount
   )
@@ -162,6 +165,14 @@ object OrderTaking {
 
   sealed trait PlaceOrderError
   case class OrderValidationErrors(validationErrors: List[ValidationError])
-  type PlaceOrder = UnvalidatedOrder => Either[PlaceOrderError, PlaceOrderEvents]
+
+  case class PlaceOrderCommand(
+    orderForm: UnvalidatedOrder,
+    timestamp: DateTime,
+    userId: CustomerId
+    // etc
+  )
+  
+  type PlaceOrder = PlaceOrderCommand => Either[PlaceOrderError, PlaceOrderEvents]
     
 }
