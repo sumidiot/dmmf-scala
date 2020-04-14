@@ -1,6 +1,5 @@
 package sumidiot.dmmf
 
-import scala.concurrent.Future
 import cats.data.NonEmptyList
 
 import java.time.ZonedDateTime
@@ -191,9 +190,6 @@ object OrderTaking {
     errorDescription: String
   )
 
-  type ValidationResponse[R] = Future[Either[List[ValidationError], R]]
-  type ValidateOrder = Order.Unvalidated => ValidationResponse[Order.Validated]
-
   case class PlaceOrderEvents(
     acknowledgementSent: AcknowledgementSent,
     orderPlaced: OrderPlaced,
@@ -213,5 +209,28 @@ object OrderTaking {
   type PlaceOrderCommand = Command[Order.Unvalidated]
   
   type PlaceOrder = PlaceOrderCommand => Either[PlaceOrderError, PlaceOrderEvents]
-    
+
+  /**
+   * Modeling each step in the workflow with types
+   */
+
+  /**
+   * substep "ValidateOrder" =
+   *   input: UnvalidatedOrder
+   *   output: ValidatedOrder OR ValidationError
+   *   dependencies: CheckProductCodeExists, CheckAddressExists
+   * 
+   * previously we had set this up as
+   *   Order.Unvalidated => Future[Either[List[ValidationError], Order.Validated]]
+   */
+  type CheckProductCodeExists = ProductCode => Boolean
+  type UnvalidatedAddress = Void
+  case class CheckedAddress(checked: UnvalidatedAddress) // may change later
+  case class AddressValidationError(error: String)
+  type CheckAddressExists = UnvalidatedAddress => Either[AddressValidationError, CheckedAddress]
+  type ValidateOrder =
+    CheckProductCodeExists =>
+      CheckAddressExists =>
+        Order.Unvalidated =>
+          Either[ValidationError, Order.Validated]
 }
