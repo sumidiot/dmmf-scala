@@ -229,8 +229,39 @@ object OrderTaking {
   case class AddressValidationError(error: String)
   type CheckAddressExists = UnvalidatedAddress => Either[AddressValidationError, CheckedAddress]
   type ValidateOrder =
-    CheckProductCodeExists =>
-      CheckAddressExists =>
-        Order.Unvalidated =>
-          Either[ValidationError, Order.Validated]
+    CheckProductCodeExists
+      => CheckAddressExists
+      => Order.Unvalidated
+      => Either[ValidationError, Order.Validated]
+
+  /**
+   * substep "PriceOrder" =
+   *   input: ValidatedOrder
+   *   output: PricedOrder
+   *   dependencies: GetProductPrice
+   */
+  type GetProductPrice = ProductCode => Price
+  type PriceOrder =
+    GetProductPrice
+      => Order.Validated
+      => Order.Priced
+
+  /**
+   * substep Acknowledge Order
+   */
+  case class HtmlString(htmlString: String)
+  case class OrderAcknowledgement(emailAddress: EmailAddress, letter: HtmlString)
+  type CreateOrderAcknowledgementLetter = Order.Priced => HtmlString
+  sealed trait SendResult
+  object SendResult {
+    case object Sent extends SendResult
+    case object NotSent extends SendResult
+  }
+  case class OrderAcknowledgementSent(orderId: OrderId, emailAddress: EmailAddress)
+  type SendOrderAcknowledgement = OrderAcknowledgement => Unit
+  type AcknowledgeOrder =
+    CreateOrderAcknowledgementLetter
+      => SendOrderAcknowledgement
+      => Order.Priced
+      => Option[OrderAcknowledgementSent]
 }
