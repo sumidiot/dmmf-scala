@@ -132,11 +132,11 @@ object OrderTaking {
     def replaceOrderLine(lines: NonEmptyList[OrderLine], orderLineId: OrderLineId, newOrderLine: OrderLine): NonEmptyList[OrderLine] = {
       NonEmptyList(newOrderLine, lines.filter(_.id != orderLineId))
     }
-    val orderLine = order.order.orderLines.find(_.id == orderLineId) // Option[OrderLine]
+    val orderLine = order.orderLines.find(_.id == orderLineId) // Option[OrderLine]
     val newOrderLine = orderLine.map(_.copy(price = newPrice)) // Option[OrderLine]
-    val newOrderLines = newOrderLine.map(replaceOrderLine(order.order.orderLines, orderLineId, _)).getOrElse(order.order.orderLines)
+    val newOrderLines = newOrderLine.map(replaceOrderLine(order.orderLines, orderLineId, _)).getOrElse(order.orderLines)
     val newAmountToBill = newOrderLines.map(_.price).toList.sum // .sum isn't built in to NEL
-    order.copy(order = order.order.copy(orderLines = newOrderLines, amountToBill = newAmountToBill))
+    order.copy(orderLines = newOrderLines, amountToBill = newAmountToBill)
   }
 
 
@@ -145,45 +145,41 @@ object OrderTaking {
    * following the book. The claim in the book is that "this is the type that can be persisted
    * to storage or communicated to other contexts."
    *
-   * Note that this setup makes the same Any/AnyVal mess as EmailAndAddr above, in particular
-   * making the ugly `order.order.` calls in the `changeOrderLinePrice` method above.
+   * We begin with this a trait extending Any, with the component types as just
+   * case classes extending the root abstract type
    */
-  sealed trait Order extends Any
+  sealed abstract class Order
   object Order {
-    case class UnvalidatedOrder(
+    case class Unvalidated(
       id: OrderId,
       customerInfo: UnvalidatedCustomerInfo,
       shippingAddress: UnvalidatedShippingAddress,
       billingAddress: UnvalidatedBillingAddress,
       orderLines: NonEmptyList[OrderLine],
       amountToBill: BillingAmount
-    )
-    case class Unvalidated(order: UnvalidatedOrder) extends AnyVal with Order
+    ) extends Order
 
-    case class ValidatedOrder(
+    case class Validated(
       orderId: OrderId,
       customerInfo: CustomerInfo,
       shippingAddress: Address,
       billingAddress: Address,
       orderLines: List[ValidatedOrderLine]
-    )
-    case class Validated(order: ValidatedOrder) extends AnyVal with Order
+    ) extends Order
   
-    case class PricedOrder(
+    case class Priced(
       orderId: OrderId,
       customerInfo: CustomerInfo,
       shippingAddress: Address,
       billingAddress: Address,
       orderLines: List[PricedOrderLine],
       amountToBill: BillingAmount
-    )
-    case class Priced(order: PricedOrder) extends AnyVal with Order
+    ) extends Order
   }
   
   // more placeholder types
   type AcknowledgementSent = Void
-  type OrderPlaced = Void
-  type BillableOrderPlaced = Void
+  type OrderPlaced = Order.Priced
 
   case class ValidationError(
     fieldName: String,
@@ -264,4 +260,20 @@ object OrderTaking {
       => SendOrderAcknowledgement
       => Order.Priced
       => Option[OrderAcknowledgementSent]
+
+
+  /**
+   * Events to Return
+   */
+
+  case class BillableOrderPlaced(orderId: OrderId, billingAddress: Address, amountToBill: BillingAmount)
+
+  sealed abstract class PlaceOrderEvent
+  object PlaceOrderEvent {
+    case class OrderPlacedEvent(orderPlaced: OrderPlaced) extends PlaceOrderEvent
+    case class BillaborOrderPlacedEvent(billableOrderPlaced: BillableOrderPlaced) extends PlaceOrderEvent
+    case class OrderAcknowledgementSentEvent(orderAcknowledgementSent: OrderAcknowledgementSent) extends PlaceOrderEvent
+  }
+
+  type CreateEvents = Order.Priced => List[PlaceOrderEvent]
 }
