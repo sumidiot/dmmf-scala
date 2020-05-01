@@ -208,8 +208,15 @@ object OrderTaking {
     userId: CustomerId
   )
   type PlaceOrderCommand = Command[Order.Unvalidated]
-  
-  type PlaceOrder = PlaceOrderCommand => Either[PlaceOrderError, PlaceOrderEvents]
+ 
+  /**
+   * This is the composite workflow for all the steps, which are defined below.
+   *
+   * Since this is the "public" method of this domain, we only list it's "public"
+   * interface. The worker components, below, define their individual dependencies
+   * as part of their type signature, because they are "internal" methods to this module.
+   */
+  type PlaceOrderWorkflow = PlaceOrderCommand => Either[PlaceOrderError, List[PlaceOrderEvents]]
 
   /**
    * Modeling each step in the workflow with types
