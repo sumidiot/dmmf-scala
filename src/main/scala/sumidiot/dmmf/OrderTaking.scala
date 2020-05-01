@@ -1,5 +1,7 @@
 package sumidiot.dmmf
 
+import scala.concurrent.Future
+
 import cats.data.NonEmptyList
 
 import java.time.ZonedDateTime
@@ -176,6 +178,9 @@ object OrderTaking {
       amountToBill: BillingAmount
     ) extends Order
   }
+
+  // F# prefers Success on the Left, but we keep the scala (haskell) standard here
+  type AsyncResult[Failure, Success] = Future[Either[Failure, Success]]
   
   // more placeholder types
   type AcknowledgementSent = Void
@@ -223,12 +228,12 @@ object OrderTaking {
   type UnvalidatedAddress = Void
   case class CheckedAddress(checked: UnvalidatedAddress) // may change later
   case class AddressValidationError(error: String)
-  type CheckAddressExists = UnvalidatedAddress => Either[AddressValidationError, CheckedAddress]
+  type CheckAddressExists = UnvalidatedAddress => AsyncResult[AddressValidationError, CheckedAddress]
   type ValidateOrder =
     CheckProductCodeExists
       => CheckAddressExists
       => Order.Unvalidated
-      => Either[ValidationError, Order.Validated]
+      => AsyncResult[ValidationError, Order.Validated]
 
   /**
    * substep "PriceOrder" =
@@ -236,11 +241,12 @@ object OrderTaking {
    *   output: PricedOrder
    *   dependencies: GetProductPrice
    */
+  case class PricingError(error: String)
   type GetProductPrice = ProductCode => Price
   type PriceOrder =
     GetProductPrice
       => Order.Validated
-      => Order.Priced
+      => Either[PricingError, Order.Priced]
 
   /**
    * substep Acknowledge Order
@@ -254,12 +260,12 @@ object OrderTaking {
     case object NotSent extends SendResult
   }
   case class OrderAcknowledgementSent(orderId: OrderId, emailAddress: EmailAddress)
-  type SendOrderAcknowledgement = OrderAcknowledgement => Unit
+  type SendOrderAcknowledgement = OrderAcknowledgement => Future[SendResult]
   type AcknowledgeOrder =
     CreateOrderAcknowledgementLetter
       => SendOrderAcknowledgement
       => Order.Priced
-      => Option[OrderAcknowledgementSent]
+      => Future[Option[OrderAcknowledgementSent]]
 
 
   /**
